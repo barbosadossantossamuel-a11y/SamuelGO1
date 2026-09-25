@@ -1,0 +1,9 @@
+{
+  "framework": "vite",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/((?!assets/|favicon.ico|robots.txt).*)", "destination": "/index.html" }
+  ]
+}
