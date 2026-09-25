@@ -14,6 +14,7 @@ export default function PublicMenu() {
   const slug = params?.slug ?? "pedido-go-demo";
   const isDemo = slug === "pedido-go-demo";
   const { data } = trpc.publicMenu.bySlug.useQuery({slug}, {enabled:!isDemo, retry:false});
+  if (!isDemo && data === null) return <div className="flex min-h-screen items-center justify-center bg-[#f8f7f3] p-6 text-center"><div className="max-w-sm"><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#fff1ec] text-[#ef6b4b]"><Clock3 className="h-7 w-7" /></span><h1 className="display-serif mt-7 text-4xl">Cardápio temporariamente pausado.</h1><p className="mt-4 text-sm leading-relaxed text-black/50">Este estabelecimento está atualizando o plano do PedidoGO. Tente novamente mais tarde.</p></div></div>;
   const establishment = data?.establishment ?? { id:1, name:"Empório Burger", description:"Burger artesanal, ingredientes de verdade e aquele molho da casa.", whatsapp:"5511999999999", address:"Rua das Palmeiras, 240 — Centro", isPublished:1 };
   const categories = data?.categories ?? demoCategories;
   const products:MenuProduct[] = data?.products ?? demoProducts;

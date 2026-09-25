@@ -25,3 +25,12 @@ describe("delivery zone helpers", () => {
     expect(resolveDeliveryZone([{ neighborhood: "Centro", fee: 500, estimatedMinutes: 30 }], "Bairro Novo")).toBeUndefined();
   });
 });
+
+
+describe("subscription trial", () => {
+  it("ends exactly 30 days after the subscription starts", async () => {
+    const { getTrialEndDate } = await import("./db");
+    const createdAt = new Date("2026-01-01T00:00:00.000Z");
+    expect(getTrialEndDate(createdAt).toISOString()).toBe("2026-01-31T00:00:00.000Z");
+  });
+});

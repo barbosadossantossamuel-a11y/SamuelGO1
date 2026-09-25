@@ -85,6 +85,10 @@ export function resolveDeliveryZone(zones: Array<{ neighborhood: string; fee: nu
   return zones.find(zone => normalizeNeighborhood(zone.neighborhood) === normalized);
 }
 
+export function getTrialEndDate(createdAt: Date) {
+  return new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+}
+
 const image = (id: string, width = 900) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`;
 
 async function seedEstablishment(establishmentId: number, type = "Hamburgueria") {
@@ -169,6 +173,43 @@ export async function getOrCreateEstablishment(userId: number, userName?: string
   return created[0];
 }
 
+export async function getSubscriptionStatus(establishmentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  let rows = await db.select().from(subscriptions).where(eq(subscriptions.establishmentId, establishmentId)).limit(1);
+  if (!rows[0]) {
+    await db.insert(subscriptions).values({ establishmentId, plan: "free", status: "trialing" });
+    rows = await db.select().from(subscriptions).where(eq(subscriptions.establishmentId, establishmentId)).limit(1);
+  }
+  const subscription = rows[0];
+  if (!subscription) throw new Error("Não foi possível carregar a assinatura");
+  const now = Date.now();
+  const trialEndsAt = subscription.status === "trialing" ? getTrialEndDate(subscription.createdAt) : null;
+  const trialExpired = Boolean(trialEndsAt && now >= trialEndsAt.getTime());
+  const renewalExpired = subscription.status === "active" && subscription.renewsAt && now >= subscription.renewsAt.getTime();
+  if ((trialExpired || renewalExpired) && subscription.status !== "past_due") {
+    await db.update(subscriptions).set({ status: "past_due" }).where(eq(subscriptions.id, subscription.id));
+    subscription.status = "past_due";
+  }
+  const isActive = subscription.status === "active" || (subscription.status === "trialing" && !trialExpired);
+  const expiry = subscription.status === "active" ? subscription.renewsAt : trialEndsAt;
+  return { subscription, trialEndsAt, isActive, requiresPlan: !isActive, daysRemaining: expiry ? Math.max(0, Math.ceil((expiry.getTime() - now) / (24 * 60 * 60 * 1000))) : 0 };
+}
+
+export async function getSubscriptionForUser(userId: number) {
+  const establishment = await getOrCreateEstablishment(userId);
+  return getSubscriptionStatus(establishment.id);
+}
+
+export async function renewSubscription(userId: number, plan: "essential" | "professional" | "premium") {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const establishment = await getOrCreateEstablishment(userId);
+  const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await db.update(subscriptions).set({ plan, status: "active", renewsAt }).where(eq(subscriptions.establishmentId, establishment.id));
+  return getSubscriptionStatus(establishment.id);
+}
+
 export async function getDashboardData(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
@@ -180,7 +221,8 @@ export async function getDashboardData(userId: number) {
     db.select({ total: sql<number>`coalesce(sum(${orders.total}), 0)` }).from(orders).where(and(eq(orders.establishmentId, establishment.id), sql`${orders.status} <> 'cancelled'`)),
     db.select().from(orders).where(eq(orders.establishmentId, establishment.id)).orderBy(desc(orders.createdAt)).limit(5),
   ]);
-  return { establishment, counts: { products: Number(productCount[0]?.count ?? 0), categories: Number(categoryCount[0]?.count ?? 0), orders: Number(orderCount[0]?.count ?? 0), revenue: Number(revenue[0]?.total ?? 0) }, recentOrders };
+  const subscription = await getSubscriptionStatus(establishment.id);
+  return { establishment, subscription, counts: { products: Number(productCount[0]?.count ?? 0), categories: Number(categoryCount[0]?.count ?? 0), orders: Number(orderCount[0]?.count ?? 0), revenue: Number(revenue[0]?.total ?? 0) }, recentOrders };
 }
 
 export async function getPublicMenu(slug: string) {
@@ -189,6 +231,8 @@ export async function getPublicMenu(slug: string) {
   const found = await db.select().from(establishments).where(and(eq(establishments.slug, slug), eq(establishments.isPublished, 1))).limit(1);
   const establishment = found[0];
   if (!establishment) return null;
+  const subscription = await getSubscriptionStatus(establishment.id);
+  if (!subscription.isActive) return null;
   await db.update(establishments).set({ views: sql`${establishments.views} + 1` }).where(eq(establishments.id, establishment.id));
   const [menuCategories, menuProducts, theme, delivery, hours, zones] = await Promise.all([
     db.select().from(categories).where(and(eq(categories.establishmentId, establishment.id), eq(categories.isActive, 1))).orderBy(asc(categories.sortOrder)),

@@ -17,6 +17,7 @@ import {
   getOrCreateEstablishment,
   getProductsForUser,
   getPublicMenu,
+  getSubscriptionForUser,
   orders,
   products,
   publishEstablishment,
@@ -25,6 +26,7 @@ import {
   updateDeliveryZone,
   updateEstablishment,
   updateTheme,
+  renewSubscription,
 } from "./db";
 
 const orderStatus = z.enum(["new", "confirmed", "preparing", "out_for_delivery", "completed", "cancelled"]);
@@ -63,6 +65,10 @@ export const appRouter = router({
     createZone: protectedProcedure.input(z.object({ neighborhood: z.string().trim().min(2).max(120), fee: money, estimatedMinutes: z.number().int().min(10).max(240) })).mutation(({ ctx, input }) => createDeliveryZone(ctx.user.id, input)),
     updateZone: protectedProcedure.input(z.object({ id: z.number().int().positive(), neighborhood: z.string().trim().min(2).max(120).optional(), fee: money.optional(), estimatedMinutes: z.number().int().min(10).max(240).optional(), isActive: z.boolean().optional() })).mutation(({ ctx, input }) => updateDeliveryZone(ctx.user.id, input)),
     deleteZone: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteDeliveryZone(ctx.user.id, input.id)),
+  }),
+  subscription: router({
+    current: protectedProcedure.query(({ ctx }) => getSubscriptionForUser(ctx.user.id)),
+    renew: protectedProcedure.input(z.object({ plan: z.enum(["essential", "professional", "premium"]) })).mutation(({ ctx, input }) => renewSubscription(ctx.user.id, input.plan)),
   }),
   products: router({
     list: protectedProcedure.query(({ ctx }) => getProductsForUser(ctx.user.id)),

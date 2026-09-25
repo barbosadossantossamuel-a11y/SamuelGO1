@@ -10,6 +10,7 @@ import Orders from "@/pages/Orders";
 import Products from "@/pages/Products";
 import PublicMenu from "@/pages/PublicMenu";
 import Settings from "@/pages/Settings";
+import Subscription from "@/pages/Subscription";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -34,7 +35,7 @@ function Router() {
     <Route path="/dashboard/horarios" component={Settings} />
     <Route path="/dashboard/whatsapp" component={Settings} />
     <Route path="/dashboard/qrcode" component={Settings} />
-    <Route path="/dashboard/plano" component={Settings} />
+    <Route path="/dashboard/plano" component={Subscription} />
     <Route path="/dashboard/configuracoes" component={Settings} />
     <Route path="/m/:slug" component={PublicMenu} />
     <Route path="/404" component={NotFound} />
