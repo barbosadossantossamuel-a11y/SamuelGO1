@@ -1,33 +1,87 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { startLogin } from "@/const";
+import { categories, formatBRL, templates } from "@/lib/pedidogoData";
+import { ArrowRight, Check, ChevronDown, Menu, Play, Sparkles, Star, X, Zap } from "lucide-react";
+import { useState } from "react";
+import { Link } from "wouter";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const heroProducts = [
+  { name: "X-Bacon da casa", price: "R$ 24,90", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=240&q=85" },
+  { name: "Combo Burger + fritas", price: "R$ 35,90", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=240&q=85" },
+];
+
 export default function Home() {
-  // The useAuth hook provides authentication state.
-  // To implement login/logout, call logout(), or start login from an event
-  // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
-  // startLogin() during render (no href={startLogin()}) — it mints a one-time
-  // nonce cookie and must run only at the moment of navigation.
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
-
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const [mobileNav, setMobileNav] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("Todos");
+  const [showAll, setShowAll] = useState(false);
+  const visibleTemplates = (activeCategory === "Todos" ? templates : templates.filter(template => template.category === activeCategory)).slice(0, showAll ? 12 : 6);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen overflow-hidden bg-[#f6f4ef] text-[#111315]">
+      <header className="absolute inset-x-0 top-0 z-30">
+        <div className="container flex h-20 items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#ef6b4b] text-lg font-bold text-white shadow-[0_8px_24px_rgba(239,107,75,.3)]">P</span>
+            <span className="text-lg font-bold tracking-[-.04em] text-white">Pedido<span className="text-[#f1bd69]">GO</span></span>
+          </Link>
+          <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 lg:flex">
+            <a href="#como-funciona" className="transition hover:text-white">Como funciona</a>
+            <a href="#modelos" className="transition hover:text-white">Modelos</a>
+            <a href="#recursos" className="transition hover:text-white">Recursos</a>
+            <a href="#planos" className="transition hover:text-white">Planos</a>
+          </nav>
+          <div className="hidden items-center gap-4 lg:flex">
+            <button onClick={() => startLogin()} className="text-sm font-semibold text-white/80 transition hover:text-white">Entrar</button>
+            <button onClick={() => startLogin()} className="button-pop rounded-full bg-[#ef6b4b] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(239,107,75,.25)]">Testar grátis <ArrowRight className="ml-2 inline h-4 w-4" /></button>
+          </div>
+          <button onClick={() => setMobileNav(!mobileNav)} className="rounded-xl border border-white/15 p-2 text-white lg:hidden" aria-label="Abrir menu">{mobileNav ? <X /> : <Menu />}</button>
+        </div>
+        {mobileNav && <div className="border-t border-white/10 bg-[#111315] px-5 py-5 text-sm text-white lg:hidden"><div className="container flex flex-col gap-5"><a href="#como-funciona" onClick={() => setMobileNav(false)}>Como funciona</a><a href="#modelos" onClick={() => setMobileNav(false)}>Modelos</a><a href="#recursos" onClick={() => setMobileNav(false)}>Recursos</a><button onClick={() => startLogin()} className="w-full rounded-full bg-[#ef6b4b] py-3 font-semibold">Começar agora</button></div></div>}
+      </header>
+
       <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
+        <section className="grain relative overflow-hidden bg-[#111315] pb-24 pt-32 text-white lg:pb-28 lg:pt-40">
+          <div className="hero-grid absolute inset-0 opacity-60" />
+          <div className="absolute -right-32 top-24 h-96 w-96 rounded-full bg-[#ef6b4b]/20 blur-[110px]" />
+          <div className="absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-[#80aaa1]/15 blur-[100px]" />
+          <div className="container relative grid items-center gap-14 lg:grid-cols-[1.02fr_.98fr] lg:gap-8">
+            <div className="max-w-2xl fade-up">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.06] px-3 py-2 text-xs font-semibold text-[#f1bd69]"><Sparkles className="h-3.5 w-3.5" /> Feito para negócios que querem vender mais</div>
+              <h1 className="display-serif text-[3.55rem] leading-[.98] tracking-[-.06em] text-white sm:text-[5rem] lg:text-[5.9rem]">Seu cardápio.<br /><span className="text-[#ef6b4b]">Seus pedidos.</span><br />Seu WhatsApp.</h1>
+              <p className="mt-7 max-w-xl text-lg leading-relaxed text-white/60 sm:text-xl">Crie um cardápio profissional para seu negócio em poucos minutos e receba pedidos diretamente pelo WhatsApp.</p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <button onClick={() => startLogin()} className="button-pop flex items-center justify-center rounded-full bg-[#ef6b4b] px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(239,107,75,.28)]">Criar meu cardápio <ArrowRight className="ml-3 h-5 w-5" /></button>
+                <Link href="/m/pedido-go-demo" className="button-pop flex items-center justify-center rounded-full border border-white/15 bg-white/[.06] px-6 py-4 text-base font-semibold text-white"><Play className="mr-3 h-4 w-4 fill-current text-[#f1bd69]" /> Ver demonstração</Link>
+              </div>
+              <div className="mt-8 flex items-center gap-4 text-sm text-white/50"><div className="flex -space-x-2"><span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#111315] bg-[#f1bd69] text-xs font-bold text-[#111315]">M</span><span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#111315] bg-[#80aaa1] text-xs font-bold text-[#111315]">L</span><span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#111315] bg-[#ef6b4b] text-xs font-bold text-white">J</span></div><span>Mais de <b className="text-white">2.000 negócios</b> já estão vendendo online</span></div>
+            </div>
+            <div className="relative mx-auto w-full max-w-[500px] lg:mr-0 fade-up [animation-delay:120ms]">
+              <div className="absolute -right-6 top-8 hidden rounded-2xl border border-white/10 bg-[#202326] p-4 shadow-2xl sm:block"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#bde5da] text-[#22564c]"><Zap className="h-5 w-5 fill-current" /></span><div><p className="text-xs text-white/50">Pedidos hoje</p><p className="text-lg font-bold text-white">+32,8%</p></div></div></div>
+              <div className="rounded-[34px] border border-white/10 bg-[#222528] p-2 shadow-[0_30px_90px_rgba(0,0,0,.35)]">
+                <div className="overflow-hidden rounded-[27px] bg-[#faf9f5] text-[#141617]">
+                  <div className="relative h-36 overflow-hidden"><img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=85" className="h-full w-full object-cover" alt="Hambúrguer artesanal" /><div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" /><div className="absolute inset-x-5 bottom-4 flex items-end justify-between text-white"><div><p className="text-xs text-white/75">Aberto agora · 35–45 min</p><h2 className="mt-1 text-xl font-bold">Empório Burger</h2></div><span className="rounded-lg bg-[#ef6b4b] px-2 py-1 text-[10px] font-bold">4.9 ★</span></div></div>
+                  <div className="scrollbar-hidden flex gap-2 overflow-x-auto border-b border-black/5 px-4 py-3 text-xs font-semibold"><span className="rounded-full bg-[#ef6b4b] px-3 py-1.5 text-white">Favoritos</span><span className="rounded-full bg-black/5 px-3 py-1.5 text-black/55">Combos</span><span className="rounded-full bg-black/5 px-3 py-1.5 text-black/55">Porções</span></div>
+                  <div className="space-y-3 p-4">{heroProducts.map(product => <div key={product.name} className="flex gap-3 rounded-2xl border border-black/5 bg-white p-2"><img src={product.image} className="h-20 w-20 rounded-xl object-cover" alt="" /><div className="min-w-0 flex-1 py-1"><p className="truncate text-sm font-bold">{product.name}</p><p className="mt-1 text-xs leading-relaxed text-black/45">O favorito da casa, feito na hora.</p><div className="mt-2 flex items-center justify-between"><span className="text-sm font-bold text-[#ef6b4b]">{product.price}</span><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#ef6b4b] text-lg text-white">+</span></div></div></div>)}</div>
+                  <div className="m-4 flex items-center justify-between rounded-2xl bg-[#151719] px-4 py-3 text-white"><span className="text-xs text-white/50">2 itens no carrinho</span><span className="text-sm font-bold">Ver pedido <ArrowRight className="ml-1 inline h-4 w-4" /></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-[#111315]/10 bg-[#efede6] py-7"><div className="container flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-semibold text-[#111315]/45 lg:justify-between"><span className="flex items-center gap-2"><span className="text-lg text-[#ef6b4b]">✦</span> Feito para vender</span><span className="flex items-center gap-2"><span className="text-lg text-[#80aaa1]">✦</span> Sem complicação</span><span className="flex items-center gap-2"><span className="text-lg text-[#c89b42]">✦</span> WhatsApp direto</span><span className="flex items-center gap-2"><span className="text-lg text-[#ef6b4b]">✦</span> 100% responsivo</span></div></section>
+
+        <section id="como-funciona" className="container py-24 lg:py-32"><div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-24"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ef6b4b]">Como funciona</p><h2 className="display-serif mt-4 text-5xl leading-[1.02] sm:text-6xl">Do zero ao primeiro pedido em minutos.</h2><p className="mt-6 max-w-md text-base leading-relaxed text-[#111315]/55">Você não precisa entender de tecnologia. Escolha um modelo, personalize o essencial e coloque seu link no ar.</p><Link href="/cadastro" className="mt-8 inline-flex items-center font-bold text-[#ef6b4b]">Começar agora <ArrowRight className="ml-2 h-4 w-4" /></Link></div><div className="grid gap-4 sm:grid-cols-3">{[{n:"01", title:"Escolha seu modelo", text:"Comece com um cardápio que já nasceu pronto para o seu tipo de negócio."},{n:"02", title:"Personalize do seu jeito", text:"Troque logo, produtos, preços, cores e tudo que faz sua marca ser única."},{n:"03", title:"Publique e venda", text:"Compartilhe seu link e receba pedidos organizados pelo WhatsApp."}].map((step,index)=><div key={step.n} className={`rounded-[26px] p-6 ${index === 1 ? "bg-[#111315] text-white" : "bg-white soft-shadow"}`}><span className={`text-xs font-bold ${index === 1 ? "text-[#f1bd69]" : "text-[#ef6b4b]"}`}>{step.n}</span><div className="mt-16 sm:mt-28"><h3 className="text-lg font-bold leading-snug">{step.title}</h3><p className={`mt-3 text-sm leading-relaxed ${index === 1 ? "text-white/55" : "text-[#111315]/50"}`}>{step.text}</p></div></div>)}</div></div></section>
+
+        <section id="modelos" className="bg-[#111315] py-24 text-white lg:py-32"><div className="container"><div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#f1bd69]">Galeria de modelos</p><h2 className="display-serif mt-4 text-5xl leading-[1.02] sm:text-6xl">Comece com uma<br /><span className="text-[#ef6b4b]">vantagem.</span></h2></div><p className="max-w-sm text-sm leading-relaxed text-white/50">12 layouts pensados para negócios reais. Escolha um e receba categorias, produtos e visual prontos para editar.</p></div><div className="scrollbar-hidden mt-10 flex gap-2 overflow-x-auto pb-2">{categories.map(category=><button key={category} onClick={()=>setActiveCategory(category)} className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${activeCategory===category ? "bg-[#ef6b4b] text-white" : "bg-white/8 text-white/50 hover:bg-white/15 hover:text-white"}`}>{category}</button>)}</div><div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{visibleTemplates.map((template,index)=><div key={template.id} className="group overflow-hidden rounded-[24px] border border-white/10 bg-[#1c1f21] transition duration-300 hover:-translate-y-1 hover:border-white/20"><div className="relative h-48 overflow-hidden"><img src={template.image} alt={template.name} className="h-full w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-100" /><div className="absolute inset-0 bg-gradient-to-t from-[#1c1f21] via-transparent to-transparent" />{template.badge && <span className="absolute left-4 top-4 rounded-full bg-[#f1bd69] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#111315]">{template.badge}</span>}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-medium text-white/40">{template.category}</p><h3 className="mt-1 text-lg font-bold">{template.name}</h3></div><div className="flex gap-1.5 pt-1">{template.colors.map(color=><span key={color} style={{backgroundColor: color}} className="h-3 w-3 rounded-full border border-white/15" />)}</div></div><p className="mt-3 text-sm leading-relaxed text-white/50">{template.description}</p><Link href={`/cadastro?modelo=${template.id}`} className="mt-5 flex items-center text-sm font-bold" style={{color: template.accent}}>Usar este modelo <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" /></Link></div></div>)}</div><button onClick={()=>setShowAll(!showAll)} className="mx-auto mt-10 flex items-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white/75 transition hover:bg-white/10">{showAll ? "Mostrar menos" : "Ver todos os modelos"}<ChevronDown className={`ml-2 h-4 w-4 transition ${showAll ? "rotate-180" : ""}`} /></button></div></section>
+
+        <section id="recursos" className="container py-24 lg:py-32"><div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ef6b4b]">Tudo em um só lugar</p><h2 className="display-serif mt-4 text-5xl leading-[1.02] sm:text-6xl">Seu negócio mais leve. Seu cliente mais perto.</h2></div><div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">{[{icon:"↗", title:"Pedidos organizados", text:"Receba os pedidos completos, com endereço, adicionais e observações."},{icon:"◉", title:"Seu cardápio, sua cara", text:"Logo, cores, banner e tipografia que combinam com sua marca."},{icon:"⌁", title:"WhatsApp conectado", text:"O pedido chega no número do seu negócio com uma mensagem pronta."},{icon:"▣", title:"Feito para o celular", text:"Seu cliente pede em poucos toques, sem baixar aplicativo."}].map((item,index)=><div key={item.title} className={`rounded-[25px] p-6 ${index===0?"bg-[#ef6b4b] text-white":"bg-white soft-shadow"}`}><span className={`text-3xl ${index===0?"text-white":"text-[#ef6b4b]"}`}>{item.icon}</span><h3 className="mt-14 text-lg font-bold">{item.title}</h3><p className={`mt-3 text-sm leading-relaxed ${index===0?"text-white/70":"text-[#111315]/50"}`}>{item.text}</p></div>)}</div></section>
+
+        <section id="planos" className="bg-[#e8eee9] py-24 lg:py-32"><div className="container"><div className="text-center"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#3d766a]">Planos simples</p><h2 className="display-serif mt-4 text-5xl leading-[1.02] sm:text-6xl">Comece grátis. Cresça<br />sem surpresas.</h2><p className="mx-auto mt-5 max-w-lg text-[#111315]/55">Tudo o que você precisa para colocar seu cardápio no ar. Faça upgrade quando seu negócio pedir.</p></div><div className="mx-auto mt-12 grid max-w-5xl gap-4 lg:grid-cols-4">{[{name:"Grátis",price:"R$ 0",desc:"Para colocar a ideia no ar",features:["1 cardápio publicado","Até 20 produtos","Pedidos via WhatsApp"]},{name:"Essencial",price:"R$ 49,90",desc:"Para começar a vender",features:["Produtos ilimitados","QR Code personalizado","Suporte prioritário"]},{name:"Profissional",price:"R$ 69,90",desc:"Para negócios em ritmo",features:["Tudo do Essencial","Domínio personalizado","Relatórios de pedidos"],hot:true},{name:"Premium",price:"R$ 89,90",desc:"Para quem quer ir além",features:["Tudo do Profissional","Mais de um cardápio","Atendimento VIP"]}].map(plan=><div key={plan.name} className={`relative rounded-[25px] p-6 ${plan.hot?"bg-[#111315] text-white dark-shadow":"bg-white soft-shadow"}`}>{plan.hot&&<span className="absolute -top-3 right-5 rounded-full bg-[#f1bd69] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#111315]">Mais popular</span>}<h3 className="text-sm font-bold">{plan.name}</h3><p className={`mt-2 text-xs ${plan.hot?"text-white/50":"text-[#111315]/45"}`}>{plan.desc}</p><p className="mt-7 text-3xl font-bold">{plan.price}<span className={`text-xs font-medium ${plan.hot?"text-white/45":"text-[#111315]/45"}`}>/mês</span></p><div className={`my-6 h-px ${plan.hot?"bg-white/10":"bg-black/8"}`} />{plan.features.map(feature=><p key={feature} className={`mb-3 flex items-center gap-2 text-xs ${plan.hot?"text-white/70":"text-[#111315]/60"}`}><Check className={`h-3.5 w-3.5 ${plan.hot?"text-[#f1bd69]":"text-[#3d766a]"}`} />{feature}</p>)}<button onClick={()=>startLogin()} className={`button-pop mt-5 w-full rounded-full py-3 text-sm font-bold ${plan.hot?"bg-[#ef6b4b] text-white":"bg-[#111315] text-white"}`}>Começar agora</button></div>)}</div></div></section>
+
+        <section className="container py-24 lg:py-32"><div className="relative overflow-hidden rounded-[34px] bg-[#ef6b4b] px-6 py-14 text-center text-white sm:px-12"><div className="absolute -right-10 -top-24 h-64 w-64 rounded-full border-[40px] border-white/10" /><div className="absolute -bottom-28 -left-16 h-64 w-64 rounded-full border-[40px] border-white/10" /><Star className="relative mx-auto h-7 w-7 fill-[#f1bd69] text-[#f1bd69]" /><h2 className="display-serif relative mx-auto mt-5 max-w-2xl text-5xl leading-[1.02] sm:text-6xl">O próximo pedido começa com um bom cardápio.</h2><p className="relative mx-auto mt-5 max-w-md text-sm leading-relaxed text-white/75">Crie o seu hoje e descubra como é vender com mais presença — sem complicar sua operação.</p><button onClick={()=>startLogin()} className="button-pop relative mt-8 rounded-full bg-[#111315] px-7 py-4 text-sm font-bold text-white shadow-xl">Criar meu cardápio <ArrowRight className="ml-2 inline h-4 w-4" /></button></div></section>
       </main>
+
+      <footer className="border-t border-[#111315]/10 bg-[#f6f4ef] py-8"><div className="container flex flex-col items-center justify-between gap-4 text-xs text-[#111315]/45 sm:flex-row"><Link href="/" className="flex items-center gap-2 text-sm font-bold text-[#111315]"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#ef6b4b] text-xs text-white">P</span> PedidoGO</Link><div>© 2026 PedidoGO. Seu cardápio, do seu jeito.</div><div className="flex gap-5"><a href="#recursos">Recursos</a><a href="#planos">Planos</a><Link href="/login">Entrar</Link></div></div></footer>
     </div>
   );
 }
