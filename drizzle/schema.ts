@@ -125,6 +125,24 @@ export const deliverySettings = mysqlTable("delivery_settings", {
   address: text("address"),
 });
 
+export const deliveryZones = mysqlTable(
+  "delivery_zones",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    establishmentId: int("establishmentId").notNull(),
+    neighborhood: varchar("neighborhood", { length: 120 }).notNull(),
+    fee: int("fee").notNull().default(500),
+    estimatedMinutes: int("estimatedMinutes").notNull().default(35),
+    isActive: int("isActive").notNull().default(1),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    establishmentIdx: index("delivery_zones_establishment_idx").on(table.establishmentId),
+    neighborhoodUnique: uniqueIndex("delivery_zones_neighborhood_unique").on(table.establishmentId, table.neighborhood),
+  }),
+);
+
 export const themes = mysqlTable("themes", {
   id: int("id").autoincrement().primaryKey(),
   establishmentId: int("establishmentId").notNull(),
@@ -195,3 +213,4 @@ export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Theme = typeof themes.$inferSelect;
+export type DeliveryZone = typeof deliveryZones.$inferSelect;

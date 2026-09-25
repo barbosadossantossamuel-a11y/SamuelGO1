@@ -6,8 +6,11 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   categories,
+  createDeliveryZone,
   createOrder,
+  deleteDeliveryZone,
   establishments,
+  getDeliveryZonesForUser,
   getDashboardData,
   getDb,
   getOrdersForUser,
@@ -19,6 +22,7 @@ import {
   publishEstablishment,
   setOrderStatus,
   slugify,
+  updateDeliveryZone,
   updateEstablishment,
   updateTheme,
 } from "./db";
@@ -53,6 +57,12 @@ export const appRouter = router({
       bannerUrl: z.string().url().optional(),
     })).mutation(({ ctx, input }) => updateEstablishment(ctx.user.id, input)),
     publish: protectedProcedure.input(z.object({ isPublished: z.boolean() })).mutation(({ ctx, input }) => publishEstablishment(ctx.user.id, input.isPublished)),
+  }),
+  delivery: router({
+    zones: protectedProcedure.query(({ ctx }) => getDeliveryZonesForUser(ctx.user.id)),
+    createZone: protectedProcedure.input(z.object({ neighborhood: z.string().trim().min(2).max(120), fee: money, estimatedMinutes: z.number().int().min(10).max(240) })).mutation(({ ctx, input }) => createDeliveryZone(ctx.user.id, input)),
+    updateZone: protectedProcedure.input(z.object({ id: z.number().int().positive(), neighborhood: z.string().trim().min(2).max(120).optional(), fee: money.optional(), estimatedMinutes: z.number().int().min(10).max(240).optional(), isActive: z.boolean().optional() })).mutation(({ ctx, input }) => updateDeliveryZone(ctx.user.id, input)),
+    deleteZone: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteDeliveryZone(ctx.user.id, input.id)),
   }),
   products: router({
     list: protectedProcedure.query(({ ctx }) => getProductsForUser(ctx.user.id)),
@@ -105,10 +115,11 @@ export const appRouter = router({
       phone: z.string().trim().min(8).max(40),
       fulfillmentType: z.enum(["delivery", "pickup"]),
       address: z.string().trim().max(500).optional(),
+      neighborhood: z.string().trim().max(120).optional(),
       paymentMethod: z.enum(["pix", "cash", "debit", "credit"]),
       changeFor: money.optional(),
       notes: z.string().trim().max(500).optional(),
-      deliveryFee: money,
+      deliveryFee: money.optional(),
       items: z.array(z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(20), modifiers: z.array(z.object({ name: z.string(), price: money })).optional(), notes: z.string().max(300).optional() })).min(1),
     })).mutation(({ input }) => createOrder(input)),
   }),

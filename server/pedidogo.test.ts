@@ -11,3 +11,17 @@ describe("PedidoGO tenant helpers", () => {
     expect(slugify("***")).toBe("meu-cardapio");
   });
 });
+
+
+describe("delivery zone helpers", () => {
+  it("matches neighborhoods ignoring accents, case, and extra spaces", async () => {
+    const { resolveDeliveryZone } = await import("./db");
+    const zone = resolveDeliveryZone([{ neighborhood: "Jardim América", fee: 800, estimatedMinutes: 40 }], "  jardim   america ");
+    expect(zone).toMatchObject({ fee: 800, estimatedMinutes: 40 });
+  });
+
+  it("returns no zone when the neighborhood is outside the delivery area", async () => {
+    const { resolveDeliveryZone } = await import("./db");
+    expect(resolveDeliveryZone([{ neighborhood: "Centro", fee: 500, estimatedMinutes: 30 }], "Bairro Novo")).toBeUndefined();
+  });
+});

@@ -15,6 +15,13 @@
       "when": 1790337642621,
       "tag": "0001_closed_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1790338463243,
+      "tag": "0002_fine_eternity",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import {
   businessHours,
   categories,
   deliverySettings,
+  deliveryZones,
   establishments,
   modifierGroups,
   modifiers,
@@ -69,6 +70,21 @@ export function slugify(value: string) {
     .replace(/(^-|-$)/g, "") || "meu-cardapio";
 }
 
+export function normalizeNeighborhood(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function resolveDeliveryZone(zones: Array<{ neighborhood: string; fee: number; estimatedMinutes: number }>, neighborhood?: string) {
+  if (!neighborhood) return undefined;
+  const normalized = normalizeNeighborhood(neighborhood);
+  return zones.find(zone => normalizeNeighborhood(zone.neighborhood) === normalized);
+}
+
 const image = (id: string, width = 900) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`;
 
 async function seedEstablishment(establishmentId: number, type = "Hamburgueria") {
@@ -121,12 +137,25 @@ async function seedEstablishment(establishmentId: number, type = "Hamburgueria")
   await db.insert(subscriptions).values({ establishmentId, plan: "free", status: "trialing" });
 };
 
+async function ensureDefaultDeliveryZones(establishmentId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select({ id: deliveryZones.id }).from(deliveryZones).where(eq(deliveryZones.establishmentId, establishmentId)).limit(1);
+  if (existing.length) return;
+  await db.insert(deliveryZones).values([
+    { establishmentId, neighborhood: "Centro", fee: 500, estimatedMinutes: 30 },
+    { establishmentId, neighborhood: "Jardim América", fee: 800, estimatedMinutes: 40 },
+    { establishmentId, neighborhood: "Vila Nova", fee: 1000, estimatedMinutes: 50 },
+  ]);
+}
+
 export async function getOrCreateEstablishment(userId: number, userName?: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const rows = await db.select().from(establishments).where(eq(establishments.ownerUserId, userId)).limit(1);
   if (rows[0]) {
     await seedEstablishment(rows[0].id, rows[0].businessType);
+    await ensureDefaultDeliveryZones(rows[0].id);
     return rows[0];
   }
   const name = userName ? `${userName.split(" ")[0]}'s Kitchen` : "Meu estabelecimento";
@@ -136,6 +165,7 @@ export async function getOrCreateEstablishment(userId: number, userName?: string
   const created = await db.select().from(establishments).where(eq(establishments.ownerUserId, userId)).limit(1);
   if (!created[0]) throw new Error("Não foi possível criar o estabelecimento");
   await seedEstablishment(created[0].id, created[0].businessType);
+  await ensureDefaultDeliveryZones(created[0].id);
   return created[0];
 }
 
@@ -160,14 +190,49 @@ export async function getPublicMenu(slug: string) {
   const establishment = found[0];
   if (!establishment) return null;
   await db.update(establishments).set({ views: sql`${establishments.views} + 1` }).where(eq(establishments.id, establishment.id));
-  const [menuCategories, menuProducts, theme, delivery, hours] = await Promise.all([
+  const [menuCategories, menuProducts, theme, delivery, hours, zones] = await Promise.all([
     db.select().from(categories).where(and(eq(categories.establishmentId, establishment.id), eq(categories.isActive, 1))).orderBy(asc(categories.sortOrder)),
     db.select().from(products).where(and(eq(products.establishmentId, establishment.id), eq(products.isAvailable, 1))).orderBy(asc(products.sortOrder)),
     db.select().from(themes).where(eq(themes.establishmentId, establishment.id)).limit(1),
     db.select().from(deliverySettings).where(eq(deliverySettings.establishmentId, establishment.id)).limit(1),
     db.select().from(businessHours).where(eq(businessHours.establishmentId, establishment.id)).orderBy(asc(businessHours.dayOfWeek)),
+    db.select().from(deliveryZones).where(and(eq(deliveryZones.establishmentId, establishment.id), eq(deliveryZones.isActive, 1))).orderBy(asc(deliveryZones.neighborhood)),
   ]);
-  return { establishment, categories: menuCategories, products: menuProducts, theme: theme[0] ?? null, delivery: delivery[0] ?? null, hours };
+  return { establishment, categories: menuCategories, products: menuProducts, theme: theme[0] ?? null, delivery: delivery[0] ?? null, hours, deliveryZones: zones };
+}
+
+export async function getDeliveryZonesForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const establishment = await getOrCreateEstablishment(userId);
+  return db.select().from(deliveryZones).where(eq(deliveryZones.establishmentId, establishment.id)).orderBy(asc(deliveryZones.neighborhood));
+}
+
+export async function createDeliveryZone(userId: number, input: { neighborhood: string; fee: number; estimatedMinutes: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const establishment = await getOrCreateEstablishment(userId);
+  const neighborhood = input.neighborhood.trim().replace(/\s+/g, " ");
+  if (!neighborhood) throw new Error("Informe o bairro");
+  await db.insert(deliveryZones).values({ establishmentId: establishment.id, neighborhood, fee: input.fee, estimatedMinutes: input.estimatedMinutes });
+  return { success: true };
+}
+
+export async function updateDeliveryZone(userId: number, input: { id: number; neighborhood?: string; fee?: number; estimatedMinutes?: number; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const establishment = await getOrCreateEstablishment(userId);
+  const { id, isActive, neighborhood, ...rest } = input;
+  await db.update(deliveryZones).set({ ...rest, ...(neighborhood === undefined ? {} : { neighborhood: neighborhood.trim().replace(/\s+/g, " ") }), ...(isActive === undefined ? {} : { isActive: isActive ? 1 : 0 }) }).where(and(eq(deliveryZones.id, id), eq(deliveryZones.establishmentId, establishment.id)));
+  return { success: true };
+}
+
+export async function deleteDeliveryZone(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const establishment = await getOrCreateEstablishment(userId);
+  await db.delete(deliveryZones).where(and(eq(deliveryZones.id, id), eq(deliveryZones.establishmentId, establishment.id)));
+  return { success: true };
 }
 
 export async function getProductsForUser(userId: number) {
@@ -198,10 +263,11 @@ export async function createOrder(input: {
   phone: string;
   fulfillmentType: "delivery" | "pickup";
   address?: string;
+  neighborhood?: string;
   paymentMethod: "pix" | "cash" | "debit" | "credit";
   changeFor?: number;
   notes?: string;
-  deliveryFee: number;
+  deliveryFee?: number;
   items: Array<{ productId: number; quantity: number; modifiers?: Array<{ name: string; price: number }>; notes?: string }>;
 }) {
   const db = await getDb();
@@ -215,10 +281,16 @@ export async function createOrder(input: {
     return { ...item, product, unitPrice, lineTotal: (unitPrice + modifiersTotal) * item.quantity };
   });
   const subtotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  const total = subtotal + input.deliveryFee;
+  const activeZones = input.fulfillmentType === "delivery"
+    ? await db.select().from(deliveryZones).where(and(eq(deliveryZones.establishmentId, input.establishmentId), eq(deliveryZones.isActive, 1)))
+    : [];
+  const selectedZone = resolveDeliveryZone(activeZones, input.neighborhood);
+  if (input.fulfillmentType === "delivery" && !selectedZone) throw new Error("Bairro fora da área de entrega");
+  const deliveryFee = input.fulfillmentType === "pickup" ? 0 : (selectedZone?.fee ?? input.deliveryFee ?? 0);
+  const total = subtotal + deliveryFee;
   const latest = await db.select({ orderNumber: orders.orderNumber }).from(orders).where(eq(orders.establishmentId, input.establishmentId)).orderBy(desc(orders.orderNumber)).limit(1);
   const orderNumber = (latest[0]?.orderNumber ?? 1000) + 1;
-  await db.insert(orders).values({ ...input, orderNumber, subtotal, total, address: input.address ?? null, notes: input.notes ?? null, changeFor: input.changeFor ?? null });
+  await db.insert(orders).values({ establishmentId: input.establishmentId, orderNumber, customerName: input.customerName, phone: input.phone, fulfillmentType: input.fulfillmentType, address: input.address ?? null, paymentMethod: input.paymentMethod, changeFor: input.changeFor ?? null, notes: input.notes ?? null, subtotal, deliveryFee, total });
   const created = await db.select().from(orders).where(and(eq(orders.establishmentId, input.establishmentId), eq(orders.orderNumber, orderNumber))).limit(1);
   const order = created[0];
   if (!order) throw new Error("Não foi possível criar o pedido");
