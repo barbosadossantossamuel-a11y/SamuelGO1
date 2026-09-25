@@ -60,3 +60,11 @@ describe("auth.logout", () => {
     });
   });
 });
+
+
+describe("post-auth navigation", () => {
+  it("lands authenticated users on model selection", async () => {
+    const { POST_AUTH_REDIRECT } = await import("./_core/oauth");
+    expect(POST_AUTH_REDIRECT).toBe("/dashboard/modelos");
+  });
+});
