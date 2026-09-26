@@ -68,3 +68,12 @@ describe("post-auth navigation", () => {
     expect(POST_AUTH_REDIRECT).toBe("/dashboard/modelos");
   });
 });
+
+
+describe("Vercel serverless bootstrap", () => {
+  it("creates the API app without starting a local HTTP listener", async () => {
+    const { createApp } = await import("./_core/index");
+    const app = await createApp(undefined, false);
+    expect(typeof app).toBe("function");
+  });
+});

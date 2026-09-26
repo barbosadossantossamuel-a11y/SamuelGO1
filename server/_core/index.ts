@@ -7,7 +7,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { serveStatic, setupVite } from "./vite";
 import type { Server } from "http";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -34,6 +33,7 @@ export async function createApp(server?: Server, serveFrontend = true) {
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
   if (serveFrontend) {
+    const { serveStatic, setupVite } = await import("./vite");
     if (process.env.NODE_ENV === "development") {
       await setupVite(app, server ?? createServer(app));
     } else {
