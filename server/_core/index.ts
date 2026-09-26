@@ -43,7 +43,7 @@ export async function createApp(server?: Server, serveFrontend = true) {
   return app;
 }
 
-async function startServer() {
+export async function startServer() {
   const server = createServer();
   const app = await createApp(server, true);
   const preferredPort = parseInt(process.env.PORT || "3000", 10);
@@ -52,5 +52,3 @@ async function startServer() {
   server.on("request", app);
   server.listen(port, () => console.log(`Server running on http://localhost:${port}/`));
 }
-
-startServer().catch(console.error);
